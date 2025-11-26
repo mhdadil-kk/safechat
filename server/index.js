@@ -2,44 +2,14 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import cors from 'cors';
-import https from 'https';
-import fs from 'fs';
-import { execSync } from 'child_process';
+import http from 'http';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Generate self-signed certificate if it doesn't exist
-const certPath = './cert.pem';
-const keyPath = './key.pem';
-
-if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-  console.log('📜 Generating self-signed SSL certificate...');
-  try {
-    execSync(`openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj "/CN=localhost" -keyout key.pem -out cert.pem -days 365`, { stdio: 'inherit' });
-    console.log('✅ SSL certificate generated');
-  } catch (error) {
-    console.error('❌ Failed to generate SSL certificate. Install OpenSSL or create certificates manually.');
-    console.log('   Falling back to HTTP only...');
-  }
-}
-
-// Create HTTPS server if certificates exist, otherwise HTTP
-let server;
-if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-  const options = {
-    cert: fs.readFileSync(certPath),
-    key: fs.readFileSync(keyPath)
-  };
-  server = https.createServer(options, app);
-  console.log('🔒 Using HTTPS');
-} else {
-  const http = await import('http');
-  server = http.default.createServer(app);
-  console.log('⚠️  Using HTTP (no SSL certificates found)');
-}
-
+// Create HTTP server (Render provides SSL termination)
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Data structures
@@ -262,9 +232,6 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  const protocol = fs.existsSync(certPath) && fs.existsSync(keyPath) ? 'wss' : 'ws';
-  const httpProtocol = fs.existsSync(certPath) && fs.existsSync(keyPath) ? 'https' : 'http';
   console.log(`🚀 Signaling server running on port ${PORT}`);
-  console.log(`   WebSocket: ${protocol}://localhost:${PORT}`);
-  console.log(`   Health: ${httpProtocol}://localhost:${PORT}/health`);
+  console.log(`   Health: http://localhost:${PORT}/health`);
 });
