@@ -15,12 +15,17 @@ class SocketService extends EventEmitter {
         super();
         this.webrtc = new WebRTCService();
 
-        // Auto-detect signaling server URL based on current host
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const hostname = window.location.hostname;
-        const port = '3001';
+        // Use environment variable if set, otherwise auto-detect for local development
+        if (import.meta.env.VITE_SIGNALING_SERVER_URL) {
+            this.serverUrl = import.meta.env.VITE_SIGNALING_SERVER_URL;
+        } else {
+            // Auto-detect for local development only
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const hostname = window.location.hostname;
+            const port = '3001';
+            this.serverUrl = `${protocol}//${hostname}:${port}`;
+        }
 
-        this.serverUrl = `${protocol}//${hostname}:${port}`;
         console.log('📡 Signaling server URL:', this.serverUrl);
 
         this.setupWebRTCListeners();
