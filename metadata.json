@@ -1,0 +1,8 @@
+{
+  "name": "SafeChat - Modern Random Video Chat",
+  "description": "A secure, modern, and anonymous random video and text chat application with built-in moderation features and a sleek UI.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
