@@ -184,6 +184,33 @@ export const Home: React.FC = () => {
                 </div>
             </main>
 
+            {/* SEO Content Section - Hidden but crawlable */}
+            <section className="sr-only" aria-hidden="true">
+                <h1>Free Random Video Chat - Vissoo | Best Omegle Alternative</h1>
+                <h2>Talk to Strangers Online - Anonymous Video Chat</h2>
+                <p>
+                    Vissoo is the best free Omegle alternative for random video chat with strangers.
+                    Connect instantly with people worldwide through our HD video chat platform.
+                    No registration required - start chatting anonymously in seconds.
+                </p>
+                <h3>Why Choose Vissoo Over Omegle and Umingle?</h3>
+                <ul>
+                    <li>Free HD video chat with crystal clear quality</li>
+                    <li>Safe and moderated platform for stranger chat</li>
+                    <li>No sign-up or registration needed</li>
+                    <li>Anonymous random video calls</li>
+                    <li>Better than Omegle, Umingle, and other video chat alternatives</li>
+                    <li>Available worldwide - connect with strangers from any country</li>
+                </ul>
+                <h3>Start Video Chatting Now</h3>
+                <p>
+                    Looking for a safe Omegle alternative? Vissoo offers the best random video chat experience.
+                    Talk to strangers through our free webcam chat. Whether you're looking for new friends
+                    or just want to have casual conversations, Vissoo provides a secure platform for anonymous
+                    video chatting. Join thousands of users online now!
+                </p>
+            </section>
+
             <footer className="relative z-10 p-6 text-center text-slate-600 text-xs">
                 <div className="flex justify-center gap-6 mb-4">
                     <a href="#" className="hover:text-slate-400 transition-colors">Privacy</a>

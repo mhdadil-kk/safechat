@@ -1,0 +1,27 @@
+{
+    "name": "Vissoo - Video Chat",
+    "short_name": "Vissoo",
+    "description": "Free random video chat with strangers. Best Omegle alternative.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#D4F932",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "social",
+        "entertainment"
+    ],
+    "lang": "en-US"
+}
