@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Video, VideoOff, SkipForward, LogOut, Flag } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, SkipForward, LogOut, Flag, MessageSquare } from 'lucide-react';
 import { ChatMode, ConnectionState, Message } from '../types';
 import { Button } from '../components/Button';
 import { VideoFrame } from '../components/VideoFrame';
 import { ChatInterface } from '../components/ChatInterface';
 import { ReportModal } from '../components/ReportModal';
 import { socketService } from '../services/socketService';
+import { GridBackground } from '../components/GridBackground';
+import toast from 'react-hot-toast';
 
 export const ChatRoom: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -36,8 +38,17 @@ export const ChatRoom: React.FC = () => {
 
         if (mode === ChatMode.VIDEO) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+              facingMode: 'user'
+            },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
           });
           setLocalStream(stream);
           streamRef.current = stream;
@@ -48,33 +59,15 @@ export const ChatRoom: React.FC = () => {
         startSearching();
       } catch (err: any) {
         console.error("=== INITIALIZATION ERROR ===");
-        console.error("Error object:", err);
-        console.error("Error name:", err.name);
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-        console.error("===========================");
-
+        // Error handling logic
         let errorMessage = "Failed to initialize video chat. ";
+        if (err.name === 'NotAllowedError') errorMessage += "Camera/Microphone access denied.";
+        else if (err.name === 'NotFoundError') errorMessage += "No camera/microphone found.";
+        else if (err.name === 'NotReadableError') errorMessage += "Hardware already in use.";
+        else if (err.name === 'NotSecureError') errorMessage += "HTTPS required.";
+        else errorMessage += err.message || "Unknown error.";
 
-        if (err.name === 'NotAllowedError') {
-          errorMessage += "Camera/Microphone access was denied. Please allow permissions and refresh the page.";
-        } else if (err.name === 'NotFoundError') {
-          errorMessage += "No camera or microphone found on this device.";
-        } else if (err.name === 'NotReadableError') {
-          errorMessage += "Camera/Microphone is already in use by another application.";
-        } else if (err.name === 'NotSecureError' || err.message?.includes('secure')) {
-          errorMessage += "Camera access requires HTTPS. Please use https:// in the URL or access from localhost.";
-        } else if (err.message?.includes('WebSocket') || err.message?.includes('connect')) {
-          errorMessage += `Could not connect to server at ${err.message}. Make sure the signaling server is running on port 3001.`;
-        } else if (err.message) {
-          errorMessage += `Error: ${err.message}`;
-        } else {
-          errorMessage += `Unknown error occurred. Check browser console (F12) for details.`;
-        }
-
-        alert(errorMessage);
-
-        // If only server connection failed but we're in text mode, continue anyway
+        toast.error(errorMessage);
         if (mode === ChatMode.TEXT && !err.message?.includes('getUserMedia')) {
           startSearching();
         }
@@ -87,8 +80,8 @@ export const ChatRoom: React.FC = () => {
     socketService.on('state_change', (state: ConnectionState) => {
       setConnectionState(state);
       if (state === ConnectionState.SEARCHING) {
-        setMessages([]); // Clear chat on new search
-        setRemoteStream(null); // Clear remote stream
+        setMessages([]);
+        setRemoteStream(null);
       }
     });
 
@@ -101,7 +94,6 @@ export const ChatRoom: React.FC = () => {
     });
 
     socketService.on('remote_stream', (stream: MediaStream) => {
-      console.log('📹 Received remote stream');
       setRemoteStream(stream);
     });
 
@@ -111,7 +103,6 @@ export const ChatRoom: React.FC = () => {
     });
 
     return () => {
-      // Cleanup
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -123,6 +114,13 @@ export const ChatRoom: React.FC = () => {
   // --- Actions ---
 
   const startSearching = () => {
+    if (mode === ChatMode.VIDEO) {
+      const videoTrack = localStream?.getVideoTracks()[0];
+      if (!videoTrack || !videoTrack.enabled) {
+        toast.error("Please turn on your camera to start searching.");
+        return;
+      }
+    }
     socketService.startSearch(interests, mode);
   };
 
@@ -167,6 +165,12 @@ export const ChatRoom: React.FC = () => {
     if (localStream) {
       localStream.getVideoTracks().forEach(track => track.enabled = isVideoOff);
       setIsVideoOff(!isVideoOff);
+
+      if (isVideoOff) {
+        toast.success("Camera turned on");
+      } else {
+        toast.error("Camera turned off");
+      }
     }
   };
 
@@ -176,95 +180,122 @@ export const ChatRoom: React.FC = () => {
   const isSearching = connectionState === ConnectionState.SEARCHING;
 
   return (
-    <div className="h-dvh w-screen flex flex-col bg-black text-white overflow-hidden">
+    <div className="h-dvh w-screen flex flex-col overflow-hidden relative bg-black text-white">
 
-      {/* Top Bar (Mobile/Desktop) */}
-      <div className="h-14 bg-surface border-b border-slate-700 flex items-center justify-between px-4 z-20 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`} />
-          <span className="font-medium text-sm text-slate-200">
-            {isSearching ? 'Looking for someone...' : isConnected ? 'Connected' : 'Disconnected'}
-          </span>
+      {/* 1. Global Background */}
+      <GridBackground />
+
+      {/* 2. Header (Glassmorphic) */}
+      <div className="h-16 flex items-center justify-between px-4 z-20 shrink-0 bg-black/20 backdrop-blur-sm border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Vissoo" className="w-10 h-10 object-contain" />
+          <div className="flex flex-col">
+            <span className="font-bold text-lg tracking-tight">Vissoo</span>
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#D4F932]' : 'bg-yellow-500 animate-pulse'}`} />
+              <span className="text-xs text-slate-300 font-medium">
+                {isSearching ? 'Searching...' : isConnected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setIsReportOpen(true)} className="text-slate-400 hover:text-accent">
+          <Button size="sm" variant="ghost" onClick={() => setIsReportOpen(true)} className="text-slate-400 hover:text-[#D4F932] hover:bg-[#D4F932]/10">
             <Flag className="w-4 h-4 mr-1" /> Report
           </Button>
-          <Button size="sm" variant="danger" onClick={handleStop} className="hidden sm:flex">
+          <Button size="sm" variant="danger" onClick={handleStop} className="hidden sm:flex bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20">
             <LogOut className="w-4 h-4 mr-1" /> End
           </Button>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      {/* 3. Main Content (Distinct Layouts) */}
 
-        {/* Video Area */}
-        {mode === ChatMode.VIDEO && (
-          <div className="flex-1 relative bg-slate-900 flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
+      {/* --- VIDEO MODE LAYOUT --- */}
+      {mode === ChatMode.VIDEO && (
+        <div className="flex-1 flex flex-col md:flex-row p-2 md:p-4 gap-4 overflow-hidden z-10">
 
-            {/* Remote Video (Stranger) */}
-            <div className="flex-1 relative rounded-xl overflow-hidden min-h-[30vh] md:min-h-0 bg-black shadow-lg">
-              <VideoFrame
-                stream={remoteStream}
-                isLoading={isSearching}
-                label="Stranger"
-              />
+          {/* Video Grid */}
+          <div className="flex-1 grid grid-rows-2 md:grid-rows-1 md:grid-cols-2 gap-4 relative min-h-0">
+
+            {/* Remote Video */}
+            <div className="relative rounded-2xl overflow-hidden bg-black/20 backdrop-blur-md border border-white/10 shadow-2xl">
+              <VideoFrame stream={remoteStream} isLoading={isSearching} label="Stranger" />
             </div>
 
-            {/* Local Video (Me) */}
-            <div className="absolute md:relative bottom-4 right-4 md:bottom-0 md:right-0 w-32 h-48 md:w-auto md:h-auto md:flex-1 md:max-w-md rounded-xl overflow-hidden bg-black shadow-2xl border-2 border-slate-700 md:border-0 z-10 transition-all hover:scale-105 md:hover:scale-100">
-              <VideoFrame
-                stream={localStream}
-                isLocal={true}
-                isMuted={isMuted}
-                isVideoOff={isVideoOff}
-              />
+            {/* Local Video */}
+            <div className="relative rounded-2xl overflow-hidden bg-black/20 backdrop-blur-md border border-white/10 shadow-2xl">
+              <VideoFrame stream={localStream} isLocal={true} isMuted={isMuted} isVideoOff={isVideoOff} />
             </div>
 
-            {/* Overlay Controls (Floating on Desktop over video, sticky on mobile) */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-md p-2 rounded-full border border-white/10 z-20 shadow-2xl">
-              <button onClick={toggleMute} className={`p-3 rounded-full transition-colors ${isMuted ? 'bg-accent text-white' : 'bg-slate-700/50 hover:bg-slate-600 text-white'}`}>
+            {/* Floating Controls */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-xl p-3 rounded-full border border-white/10 z-30 shadow-2xl w-max max-w-[90%] overflow-x-auto">
+              <button onClick={toggleMute} className={`p-3 rounded-full transition-all ${isMuted ? 'bg-[#D4F932] text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
-              <button onClick={toggleVideo} className={`p-3 rounded-full transition-colors ${isVideoOff ? 'bg-accent text-white' : 'bg-slate-700/50 hover:bg-slate-600 text-white'}`}>
+              <button onClick={toggleVideo} className={`p-3 rounded-full transition-all ${isVideoOff ? 'bg-[#D4F932] text-black' : 'bg-white/10 hover:bg-white/20 text-white'}`}>
                 {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
               </button>
-              <div className="w-px h-6 bg-white/20 mx-1" />
+              <div className="w-px h-8 bg-white/20" />
               <Button
                 onClick={handleSkip}
-                variant="primary"
-                size="md"
+                className="rounded-full px-8 font-bold bg-[#D4F932] hover:bg-[#B8D92C] text-black shadow-[0_0_20px_rgba(212,249,50,0.2)]"
                 isLoading={isSearching}
-                className="rounded-full px-6 font-bold"
               >
-                {isSearching ? 'Searching...' : <><SkipForward className="w-4 h-4 mr-2" /> Next</>}
+                {isSearching ? 'Searching...' : <><SkipForward className="w-5 h-5 mr-2" /> Next</>}
               </Button>
             </div>
           </div>
-        )}
 
-        {/* Text Chat Area */}
-        <div className={`flex flex-col bg-surface transition-all duration-300 ${mode === ChatMode.VIDEO
-          ? 'h-[40vh] md:h-full md:w-[350px] lg:w-[400px] border-t md:border-t-0 md:border-l border-slate-700'
-          : 'flex-1 max-w-4xl mx-auto w-full border-x border-slate-700'
-          }`}>
-          <ChatInterface
-            messages={messages}
-            onSendMessage={sendMessage}
-            isDisabled={!isConnected}
-            className="h-full"
-          />
+          {/* Chat Sidebar (Desktop Only for Video Mode) */}
+          <div className="hidden lg:flex w-96 flex-col bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-white/10 font-semibold text-slate-300 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-[#D4F932]" /> Chat
+            </div>
+            <ChatInterface messages={messages} onSendMessage={sendMessage} isDisabled={!isConnected} className="flex-1" />
+          </div>
+
         </div>
+      )}
 
-      </div>
+      {/* --- TEXT MODE LAYOUT --- */}
+      {mode === ChatMode.TEXT && (
+        <div className="flex-1 flex items-center justify-center p-4 z-10">
+          <div className="w-full max-w-4xl h-[85vh] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
+
+            {/* Decorative Glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4F932]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+
+            {/* Chat Header */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Text Chat</h2>
+                <p className="text-slate-400 text-sm">Anonymous conversation with a stranger</p>
+              </div>
+              <Button
+                onClick={handleSkip}
+                className="bg-[#D4F932] hover:bg-[#B8D92C] text-black font-bold px-6 rounded-full"
+                isLoading={isSearching}
+              >
+                <SkipForward className="w-4 h-4 mr-2" /> Next Person
+              </Button>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-hidden bg-black/20">
+              <ChatInterface messages={messages} onSendMessage={sendMessage} isDisabled={!isConnected} className="h-full" />
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <ReportModal
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
         onSubmit={(data) => {
           console.log("Report submitted:", data);
-          handleSkip(); // Usually skipping after reporting is good UX
+          handleSkip();
         }}
       />
     </div>

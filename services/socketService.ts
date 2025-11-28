@@ -57,6 +57,13 @@ class SocketService extends EventEmitter {
     // Connect to signaling server
     connect(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Idempotency check: If already connected or connecting, resolve immediately
+            if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+                console.log('🔌 Already connected/connecting to signaling server');
+                resolve();
+                return;
+            }
+
             try {
                 console.log('🔌 Connecting to signaling server:', this.serverUrl);
                 this.ws = new WebSocket(this.serverUrl);
@@ -96,12 +103,16 @@ class SocketService extends EventEmitter {
             const message = JSON.parse(data);
             const { type } = message;
 
-            console.log('📨 Received:', type);
+            // console.log('📨 Received:', type);
 
             switch (type) {
                 case 'connected':
                     this.userId = message.userId;
                     console.log('👤 User ID:', this.userId);
+                    break;
+
+                case 'user_count':
+                    this.emit('user_count', message.count);
                     break;
 
                 case 'searching':
@@ -228,7 +239,6 @@ class SocketService extends EventEmitter {
         const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
 
         console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-
         this.reconnectTimeout = window.setTimeout(() => {
             this.connect().catch(console.error);
         }, delay);
@@ -239,6 +249,12 @@ class SocketService extends EventEmitter {
     // Set local stream for WebRTC
     setLocalStream(stream: MediaStream) {
         this.webrtc.setLocalStream(stream);
+    }
+
+    async replaceVideoTrack(newTrack: MediaStreamTrack) {
+        if (this.webrtc) {
+            await this.webrtc.replaceVideoTrack(newTrack);
+        }
     }
 
     // Start searching for a match

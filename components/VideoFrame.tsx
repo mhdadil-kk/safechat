@@ -27,11 +27,11 @@ export const VideoFrame: React.FC<VideoFrameProps> = ({
   }, [stream]);
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden rounded-xl shadow-2xl border border-slate-800/50 group">
+    <div className="relative w-full h-full bg-black/20 overflow-hidden rounded-xl shadow-2xl border border-slate-800/30 group">
 
       {/* Loading State */}
       {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/90 z-20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 z-20">
           <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
           <p className="text-slate-400 font-medium">Connecting...</p>
         </div>
@@ -48,7 +48,7 @@ export const VideoFrame: React.FC<VideoFrameProps> = ({
 
       {/* Video Off State or No Stream */}
       {(isVideoOff || !stream) && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
           <div className="flex flex-col items-center text-slate-500">
             <div className="p-4 bg-slate-800 rounded-full mb-2">
               <User className="w-12 h-12" />

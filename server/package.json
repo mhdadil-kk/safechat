@@ -1,7 +1,7 @@
 {
-    "name": "safechat-signaling-server",
+    "name": "viso-server",
     "version": "1.0.0",
-    "description": "WebSocket signaling server for SafeChat video chat",
+    "description": "WebSocket signaling server for Viso video chat",
     "main": "index.js",
     "type": "module",
     "scripts": {

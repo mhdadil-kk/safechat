@@ -96,6 +96,18 @@ function cleanupUser(userId) {
   userSockets.delete(userId);
 }
 
+// Helper: Broadcast user count to all connected clients
+function broadcastUserCount() {
+  const count = userSockets.size;
+  const message = JSON.stringify({ type: 'user_count', count });
+
+  for (const [_, userData] of userSockets) {
+    if (userData.ws.readyState === 1) {
+      userData.ws.send(message);
+    }
+  }
+}
+
 // WebSocket connection handler
 wss.on('connection', (ws) => {
   const userId = uuidv4();
@@ -105,6 +117,9 @@ wss.on('connection', (ws) => {
 
   // Send userId to client
   sendMessage(ws, 'connected', { userId });
+
+  // Broadcast new user count
+  broadcastUserCount();
 
   ws.on('message', (message) => {
     try {
@@ -212,6 +227,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log(`[${userId}] Connection closed`);
     cleanupUser(userId);
+    broadcastUserCount();
     console.log(`Active connections: ${userSockets.size}, Queue: ${waitingQueue.length}, Rooms: ${activeRooms.size}`);
   });
 

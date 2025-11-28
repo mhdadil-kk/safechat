@@ -149,6 +149,15 @@ export class WebRTCService extends EventEmitter {
         return this.remoteStream;
     }
 
+    async replaceVideoTrack(newTrack: MediaStreamTrack) {
+        if (this.peerConnection) {
+            const sender = this.peerConnection.getSenders().find(s => s.track?.kind === 'video');
+            if (sender) {
+                await sender.replaceTrack(newTrack);
+            }
+        }
+    }
+
     // Close peer connection
     closePeerConnection() {
         if (this.peerConnection) {

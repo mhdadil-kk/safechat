@@ -1,4 +1,4 @@
-# SafeChat - Real-Time Video Chat
+# Viso - Random Video Chat
 
 A modern, Omegle-like random video chat application with real-time WebRTC video/audio and text chat.
 

@@ -9,9 +9,9 @@ interface ChatInterfaceProps {
   className?: string;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
-  messages, 
-  onSendMessage, 
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  messages,
+  onSendMessage,
   isDisabled = false,
   className = ''
 }) => {
@@ -41,67 +41,62 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-surface border-l border-slate-700 ${className}`}>
-      {/* Safety Notice Header */}
-      <div className="bg-slate-900/50 p-3 border-b border-slate-700 flex items-center gap-2 text-xs text-slate-400">
-        <Shield className="w-3 h-3 text-primary" />
-        <span>Chat is moderated. Be respectful.</span>
-      </div>
+    <div className={`flex flex-col h-full ${className}`}>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 scrollbar-hide">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm">
-            <p>You're connected!</p>
-            <p>Say hi to break the ice.</p>
+          <div className="flex flex-col items-center justify-center h-full text-slate-500 text-xs text-center px-4">
+            <Shield className="w-8 h-8 mb-2 opacity-20" />
+            <p>Chat is moderated.</p>
+            <p>Be respectful & kind.</p>
           </div>
         )}
-        
+
         {messages.map((msg) => {
-           const isMe = msg.sender === 'me';
-           const isSystem = msg.sender === 'system';
+          const isMe = msg.sender === 'me';
+          const isSystem = msg.sender === 'system';
 
-           if (isSystem) {
-             return (
-               <div key={msg.id} className="flex justify-center my-2">
-                 <span className="bg-slate-800 text-slate-400 text-xs px-2 py-1 rounded-full border border-slate-700">
-                   {msg.text}
-                 </span>
-               </div>
-             )
-           }
+          if (isSystem) {
+            return (
+              <div key={msg.id} className="flex justify-center my-2">
+                <span className="bg-white/5 backdrop-blur-sm text-slate-400 text-[10px] px-2 py-1 rounded-full border border-white/5">
+                  {msg.text}
+                </span>
+              </div>
+            )
+          }
 
-           return (
+          return (
             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
-                    isMe 
-                    ? 'bg-primary text-white rounded-br-none' 
-                    : 'bg-slate-700 text-slate-100 rounded-bl-none'
+              <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm backdrop-blur-sm border ${isMe
+                ? 'bg-[#D4F932]/20 border-[#D4F932]/30 text-white rounded-br-none'
+                : 'bg-white/10 border-white/5 text-slate-100 rounded-bl-none'
                 }`}>
-                    {msg.text}
-                </div>
+                {msg.text}
+              </div>
             </div>
-           );
+          );
         })}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-3 bg-surface border-t border-slate-700">
+      <div className="p-3 border-t border-white/5 bg-black/60 backdrop-blur-md">
         <form onSubmit={handleSend} className="relative flex items-center gap-2">
           <input
             type="text"
-            className="flex-1 bg-slate-900 border border-slate-700 rounded-full px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            placeholder={isDisabled ? "Searching for a partner..." : "Type a message..."}
+            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#D4F932]/50 focus:bg-white/10 transition-all disabled:opacity-50"
+            placeholder={isDisabled ? "Searching..." : "Type a message..."}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isDisabled}
           />
-          <button 
+          <button
             type="submit"
             disabled={!inputText.trim() || isDisabled}
-            className="p-3 bg-primary hover:bg-primaryHover text-white rounded-full transition-colors disabled:opacity-50 disabled:bg-slate-700"
+            className="p-2.5 bg-[#D4F932] text-black rounded-full hover:bg-[#B8D92C] transition-colors disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-500"
           >
             <Send className="w-4 h-4" />
           </button>

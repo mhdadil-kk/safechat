@@ -1,46 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>SafeChat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              background: '#0f172a', // slate-900
-              surface: '#1e293b', // slate-800
-              primary: '#6366f1', // indigo-500
-              primaryHover: '#4f46e5', // indigo-600
-              secondary: '#64748b', // slate-500
-              accent: '#f43f5e', // rose-500
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Vissoo - Random Video Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: '#0f172a', // slate-900
+            surface: '#1e293b', // slate-800
+            primary: '#6366f1', // indigo-500
+            primaryHover: '#4f46e5', // indigo-600
+            secondary: '#64748b', // slate-500
+            accent: '#f43f5e', // rose-500
           },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
         },
-      }
-    </script>
-    <style>
-      /* Custom scrollbar for Webkit */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #0f172a;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #334155;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #475569;
-      }
-    </style>
+      },
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for Webkit */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -52,10 +56,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-background text-white antialiased overflow-hidden h-screen w-screen">
-    <div id="root"></div>
+
+<body class="bg-background text-white antialiased overflow-hidden h-screen w-screen">
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

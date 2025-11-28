@@ -7,24 +7,24 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  isLoading = false, 
-  className = '', 
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = 'primary',
+  size = 'md',
+  isLoading = false,
+  className = '',
   disabled,
-  ...props 
+  ...props
 }) => {
-  
+
   const baseStyles = "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:pointer-events-none";
-  
+
   const variants = {
-    primary: "bg-primary hover:bg-primaryHover text-white shadow-lg shadow-primary/20 border-transparent",
-    secondary: "bg-surface hover:bg-slate-700 text-white border border-slate-700",
-    danger: "bg-accent hover:bg-rose-600 text-white shadow-lg shadow-accent/20",
-    ghost: "bg-transparent hover:bg-white/10 text-white",
-    outline: "bg-transparent border-2 border-slate-600 hover:border-slate-400 text-slate-200"
+    primary: "bg-[#D4F932] hover:bg-[#B8D92C] text-black font-bold shadow-lg shadow-[#D4F932]/25 border-0",
+    secondary: "bg-white/5 text-white hover:bg-white/10 border border-white/10 backdrop-blur-sm",
+    danger: "bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20",
+    ghost: "hover:bg-white/5 text-slate-300 hover:text-white",
+    outline: "border border-white/20 hover:border-white/40 text-white bg-transparent"
   };
 
   const sizes = {
@@ -38,7 +38,7 @@ export const Button: React.FC<ButtonProps> = ({
   const sizeStyles = sizes[size];
 
   return (
-    <button 
+    <button
       className={`${baseStyles} ${variantStyles} ${sizeStyles} ${className}`}
       disabled={disabled || isLoading}
       {...props}

@@ -1,6 +1,6 @@
 import { ChatMode } from './types';
 
-export const APP_NAME = "SafeChat";
+export const APP_NAME = "Vissoo";
 
 export const REPORT_CATEGORIES = [
   { id: 'nudity', label: 'Nudity / Sexual Content' },
