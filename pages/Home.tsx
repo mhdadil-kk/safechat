@@ -146,13 +146,7 @@ export const Home: React.FC = () => {
                                                     className="w-full bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-[#D4F932]/50 focus:ring-[#D4F932]/20 h-12"
                                                 />
                                             </div>
-                                            <Button
-                                                onClick={() => startChat(ChatMode.VIDEO)}
-                                                className="bg-[#D4F932] hover:bg-[#B8D92C] text-black font-bold px-8 h-12 shadow-[0_0_20px_rgba(212,249,50,0.2)] hover:shadow-[0_0_30px_rgba(212,249,50,0.4)] transition-all duration-300"
-                                            >
-                                                <Video className="w-5 h-5 mr-2" />
-                                                Start Video
-                                            </Button>
+
                                         </div>
                                     </div>
 
