@@ -12,13 +12,40 @@ export class WebRTCService extends EventEmitter {
 
     constructor() {
         super();
+
+        // Get TURN credentials from environment variables (optional)
+        const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+        const turnPassword = import.meta.env.VITE_TURN_PASSWORD;
+
         this.config = {
             iceServers: [
+                // STUN servers - for NAT discovery (finding your public IP)
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+
+                // TURN servers - for relay when direct P2P connection fails
+                // Using Metered's free TURN servers (https://www.metered.ca/tools/openrelay/)
+                // These work without credentials but have rate limits
+                // For production, sign up and add your credentials to .env.local
+                {
+                    urls: [
+                        'turn:a.relay.metered.ca:80',
+                        'turn:a.relay.metered.ca:80?transport=tcp',
+                        'turn:a.relay.metered.ca:443',
+                        'turns:a.relay.metered.ca:443?transport=tcp'
+                    ],
+                    username: turnUsername || 'openrelayproject',
+                    credential: turnPassword || 'openrelayproject'
+                }
             ]
         };
+
+        console.log('🔧 WebRTC Config:', {
+            stunServers: 3,
+            turnServers: 1,
+            usingCustomCredentials: !!(turnUsername && turnPassword)
+        });
     }
 
     // Initialize peer connection

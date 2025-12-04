@@ -155,13 +155,44 @@ The client can be deployed to:
 
 ## STUN/TURN Servers
 
-The app uses Google's free STUN servers by default for NAT traversal. For production use with users behind strict firewalls, consider adding TURN servers:
+### What are STUN/TURN Servers?
 
-- **Twilio**: Offers TURN server service
-- **Metered**: Affordable TURN servers
-- **Self-hosted**: coturn server
+- **STUN** (Session Traversal Utilities for NAT): Helps discover your public IP address for peer-to-peer connections
+- **TURN** (Traversal Using Relays around NAT): Relays traffic when direct P2P connection fails (e.g., strict firewalls, corporate networks)
 
-Update the STUN/TURN configuration in `services/webrtc.ts`.
+### Current Configuration
+
+The app is configured with:
+- ✅ **STUN servers**: Google's free STUN servers (already included)
+- ✅ **TURN servers**: Metered's free TURN relay servers (already included)
+
+**Default behavior**: Works out of the box with Metered's public TURN servers. Connections should work across different networks, including:
+- Different WiFi networks
+- WiFi to mobile data (4G/5G)
+- Corporate networks with firewalls
+- Symmetric NAT environments
+
+### For Production Use
+
+For better reliability and higher bandwidth limits, sign up for free TURN credentials:
+
+1. **Visit Metered**: https://www.metered.ca/tools/openrelay/
+2. **Sign up** for a free account (50GB/month bandwidth)
+3. **Get credentials** from your dashboard
+4. **Add to `.env.local`**:
+   ```env
+   VITE_TURN_USERNAME=your_metered_username
+   VITE_TURN_PASSWORD=your_metered_password
+   ```
+5. **Restart** the dev server
+
+### Alternative TURN Providers
+
+- **Twilio**: Enterprise-grade, pay-as-you-go
+- **Xirsys**: Free tier available (500MB/month)
+- **Self-hosted**: Use `coturn` on your own VPS
+
+The TURN configuration is in `services/webrtc.ts` if you need to customize it.
 
 ## Security Considerations
 
