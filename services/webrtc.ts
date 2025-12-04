@@ -19,15 +19,14 @@ export class WebRTCService extends EventEmitter {
 
         this.config = {
             iceServers: [
-                // STUN servers - for NAT discovery (finding your public IP)
+                // STUN servers - for NAT discovery
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
 
                 // TURN servers - for relay when direct P2P connection fails
-                // Using Metered's free TURN servers (https://www.metered.ca/tools/openrelay/)
-                // These work without credentials but have rate limits
-                // For production, sign up and add your credentials to .env.local
+                // Using Metered's TURN servers (https://www.metered.ca/tools/openrelay/)
+                // Add your credentials to .env.local for production use
                 {
                     urls: [
                         'turn:a.relay.metered.ca:80',
@@ -35,18 +34,11 @@ export class WebRTCService extends EventEmitter {
                         'turn:a.relay.metered.ca:443',
                         'turns:a.relay.metered.ca:443?transport=tcp'
                     ],
-                    username: turnUsername || 'openrelayproject',
-                    credential: turnPassword || 'openrelayproject'
+                    username: (turnUsername || 'openrelayproject').trim(),
+                    credential: (turnPassword || 'openrelayproject').trim()
                 }
             ]
         };
-
-        console.log('🔧 WebRTC Config:', {
-            stunServers: 3,
-            turnServers: 1,
-            usingCustomCredentials: !!(turnUsername && turnPassword)
-        });
-        console.log('📋 Full ICE Servers:', JSON.stringify(this.config.iceServers, null, 2));
     }
 
     // Initialize peer connection
@@ -61,14 +53,12 @@ export class WebRTCService extends EventEmitter {
         // Handle ICE candidates
         this.peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('🧊 New ICE candidate:', event.candidate);
                 this.emit('ice_candidate', event.candidate);
             }
         };
 
         // Handle incoming tracks (remote stream)
         this.peerConnection.ontrack = (event) => {
-            console.log('📹 Received remote track:', event.track.kind);
             event.streams[0].getTracks().forEach((track) => {
                 this.remoteStream?.addTrack(track);
             });
@@ -78,7 +68,6 @@ export class WebRTCService extends EventEmitter {
         // Handle connection state changes
         this.peerConnection.onconnectionstatechange = () => {
             const state = this.peerConnection?.connectionState;
-            console.log('🔗 Connection state:', state);
             this.emit('connection_state_change', state);
 
             if (state === 'disconnected' || state === 'failed' || state === 'closed') {
@@ -89,7 +78,6 @@ export class WebRTCService extends EventEmitter {
         // Handle ICE connection state
         this.peerConnection.oniceconnectionstatechange = () => {
             const state = this.peerConnection?.iceConnectionState;
-            console.log('🧊 ICE connection state:', state);
         };
 
         // Add local stream tracks to peer connection
@@ -126,7 +114,6 @@ export class WebRTCService extends EventEmitter {
         });
 
         await this.peerConnection.setLocalDescription(offer);
-        console.log('📤 Created offer');
 
         return offer;
     }
@@ -138,11 +125,9 @@ export class WebRTCService extends EventEmitter {
         }
 
         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-        console.log('📥 Set remote offer');
 
         const answer = await this.peerConnection.createAnswer();
         await this.peerConnection.setLocalDescription(answer);
-        console.log('📤 Created answer');
 
         return answer;
     }
@@ -154,19 +139,16 @@ export class WebRTCService extends EventEmitter {
         }
 
         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        console.log('📥 Set remote answer');
     }
 
     // Handle incoming ICE candidate
     async handleIceCandidate(candidate: RTCIceCandidateInit) {
         if (!this.peerConnection) {
-            console.warn('Peer connection not ready for ICE candidate');
             return;
         }
 
         try {
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log('🧊 Added ICE candidate');
         } catch (error) {
             console.error('Error adding ICE candidate:', error);
         }
@@ -197,8 +179,6 @@ export class WebRTCService extends EventEmitter {
             this.remoteStream.getTracks().forEach(track => track.stop());
             this.remoteStream = null;
         }
-
-        console.log('🔌 Peer connection closed');
     }
 
     // Cleanup

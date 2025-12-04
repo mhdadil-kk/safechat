@@ -26,8 +26,6 @@ class SocketService extends EventEmitter {
             this.serverUrl = `${protocol}//${hostname}:${port}`;
         }
 
-        console.log('📡 Signaling server URL:', this.serverUrl);
-
         this.setupWebRTCListeners();
     }
 
@@ -42,7 +40,6 @@ class SocketService extends EventEmitter {
         });
 
         this.webrtc.on('connection_state_change', (state: RTCPeerConnectionState) => {
-            console.log('WebRTC connection state:', state);
             if (state === 'connected') {
                 this.emit('state_change', ConnectionState.CONNECTED);
             }
@@ -59,17 +56,14 @@ class SocketService extends EventEmitter {
         return new Promise((resolve, reject) => {
             // Idempotency check: If already connected or connecting, resolve immediately
             if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-                console.log('🔌 Already connected/connecting to signaling server');
                 resolve();
                 return;
             }
 
             try {
-                console.log('🔌 Connecting to signaling server:', this.serverUrl);
                 this.ws = new WebSocket(this.serverUrl);
 
                 this.ws.onopen = () => {
-                    console.log('✅ Connected to signaling server');
                     this.reconnectAttempts = 0;
                     this.emit('connect');
                     resolve();
@@ -86,7 +80,6 @@ class SocketService extends EventEmitter {
                 };
 
                 this.ws.onclose = () => {
-                    console.log('🔌 Disconnected from signaling server');
                     this.emit('disconnect');
                     this.attemptReconnect();
                 };
@@ -101,62 +94,49 @@ class SocketService extends EventEmitter {
     private handleMessage(data: string) {
         try {
             const message = JSON.parse(data);
-            const { type } = message;
-
-            // console.log('📨 Received:', type);
+            const { type, ...payload } = message;
 
             switch (type) {
                 case 'connected':
                     this.userId = message.userId;
-                    console.log('👤 User ID:', this.userId);
                     break;
 
                 case 'user_count':
                     this.emit('user_count', message.count);
                     break;
 
-                case 'searching':
-                    this.emit('state_change', ConnectionState.SEARCHING);
-                    break;
-
                 case 'match_found':
-                    console.log('🎯 Match found!');
                     this.emit('match_found');
                     break;
 
-                case 'start_call':
-                    this.handleStartCall(message.shouldCreateOffer);
-                    break;
-
                 case 'webrtc_offer':
-                    this.handleWebRTCOffer(message.offer);
+                    this.handleOffer(payload.offer);
                     break;
 
                 case 'webrtc_answer':
-                    this.handleWebRTCAnswer(message.answer);
+                    this.handleAnswer(payload.answer);
                     break;
 
                 case 'webrtc_ice_candidate':
-                    this.handleWebRTCIceCandidate(message.candidate);
+                    this.webrtc.handleIceCandidate(payload.candidate);
                     break;
 
                 case 'chat_message':
-                    this.handleChatMessage(message);
+                    this.emit('message_received', payload);
                     break;
 
-                case 'peer_disconnected':
+                case 'partner_disconnected':
+                    this.webrtc.closePeerConnection();
                     this.emit('peer_disconnected');
                     this.emit('state_change', ConnectionState.DISCONNECTED);
-                    this.webrtc.closePeerConnection();
                     break;
 
-                case 'disconnected':
-                    this.emit('state_change', ConnectionState.DISCONNECTED);
-                    this.webrtc.closePeerConnection();
+                case 'start_call':
+                    this.handleStartCall(payload.createOffer);
                     break;
 
                 default:
-                    console.log('Unknown message type:', type);
+                    break;
             }
         } catch (error) {
             console.error('Error handling message:', error);
@@ -165,8 +145,6 @@ class SocketService extends EventEmitter {
 
     // Handle start call signal
     private async handleStartCall(shouldCreateOffer: boolean) {
-        console.log('📞 Starting call, create offer:', shouldCreateOffer);
-
         this.webrtc.initializePeerConnection();
         this.emit('state_change', ConnectionState.CONNECTING);
 
@@ -176,112 +154,69 @@ class SocketService extends EventEmitter {
                 this.send('webrtc_offer', { offer });
             } catch (error) {
                 console.error('Error creating offer:', error);
-                this.emit('error', error);
             }
         }
     }
 
-    // Handle incoming WebRTC offer
-    private async handleWebRTCOffer(offer: RTCSessionDescriptionInit) {
+    // Handle incoming offer
+    private async handleOffer(offer: RTCSessionDescriptionInit) {
         try {
             const answer = await this.webrtc.handleOffer(offer);
             this.send('webrtc_answer', { answer });
         } catch (error) {
             console.error('Error handling offer:', error);
-            this.emit('error', error);
         }
     }
 
-    // Handle incoming WebRTC answer
-    private async handleWebRTCAnswer(answer: RTCSessionDescriptionInit) {
+    // Handle incoming answer
+    private async handleAnswer(answer: RTCSessionDescriptionInit) {
         try {
             await this.webrtc.handleAnswer(answer);
         } catch (error) {
             console.error('Error handling answer:', error);
-            this.emit('error', error);
         }
-    }
-
-    // Handle incoming ICE candidate
-    private handleWebRTCIceCandidate(candidate: RTCIceCandidateInit) {
-        this.webrtc.handleIceCandidate(candidate);
-    }
-
-    // Handle incoming chat message
-    private handleChatMessage(message: { text: string; timestamp: number }) {
-        const msg: Message = {
-            id: Date.now().toString(),
-            sender: 'stranger',
-            text: message.text,
-            timestamp: message.timestamp
-        };
-        this.emit('message_received', msg);
     }
 
     // Send message to server
-    private send(type: string, data: any = {}) {
+    send(type: string, payload: any = {}) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({ type, ...data }));
-        } else {
-            console.warn('WebSocket not connected, cannot send:', type);
+            this.ws.send(JSON.stringify({ type, ...payload }));
         }
     }
 
-    // Attempt to reconnect
+    // Public methods
+    startSearch(interests: string[] = [], mode: ChatMode = ChatMode.VIDEO) {
+        this.send('start_search', { interests, mode });
+        this.emit('state_change', ConnectionState.SEARCHING);
+    }
+
+    sendMessage(text: string) {
+        this.send('chat_message', { text });
+    }
+
+    disconnectPeer() {
+        this.send('disconnect_peer');
+        this.webrtc.closePeerConnection();
+        this.emit('state_change', ConnectionState.IDLE);
+    }
+
+    setLocalStream(stream: MediaStream) {
+        this.webrtc.setLocalStream(stream);
+    }
+
+    // Reconnection logic
     private attemptReconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('Max reconnection attempts reached');
-            this.emit('error', new Error('Failed to reconnect to server'));
+            console.error('Max reconnect attempts reached');
             return;
         }
 
         this.reconnectAttempts++;
         const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 10000);
 
-        console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
         this.reconnectTimeout = window.setTimeout(() => {
             this.connect().catch(console.error);
         }, delay);
-    }
-
-    // Public API
-
-    // Set local stream for WebRTC
-    setLocalStream(stream: MediaStream) {
-        this.webrtc.setLocalStream(stream);
-    }
-
-    async replaceVideoTrack(newTrack: MediaStreamTrack) {
-        if (this.webrtc) {
-            await this.webrtc.replaceVideoTrack(newTrack);
-        }
-    }
-
-    // Start searching for a match
-    async startSearch(interests: string[], mode: ChatMode) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            await this.connect();
-        }
-
-        this.send('start_search', { interests, mode });
-        this.emit('state_change', ConnectionState.SEARCHING);
-    }
-
-    // Send chat message
-    sendMessage(text: string) {
-        this.send('chat_message', { text });
-    }
-
-    // Disconnect from current peer
-    disconnectPeer() {
-        this.send('disconnect_peer');
-        this.webrtc.closePeerConnection();
-        this.emit('state_change', ConnectionState.DISCONNECTED);
-    }
-
-    // Get remote stream
-    getRemoteStream(): MediaStream | null {
-        return this.webrtc.getRemoteStream();
     }
 
     // Cleanup
@@ -289,12 +224,10 @@ class SocketService extends EventEmitter {
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
         }
-
         if (this.ws) {
             this.ws.close();
             this.ws = null;
         }
-
         this.webrtc.cleanup();
         this.removeAllListeners();
     }
