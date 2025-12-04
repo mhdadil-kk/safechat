@@ -46,6 +46,7 @@ export class WebRTCService extends EventEmitter {
             turnServers: 1,
             usingCustomCredentials: !!(turnUsername && turnPassword)
         });
+        console.log('📋 Full ICE Servers:', JSON.stringify(this.config.iceServers, null, 2));
     }
 
     // Initialize peer connection
